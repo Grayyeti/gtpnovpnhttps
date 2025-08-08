@@ -32,7 +32,7 @@ def search_web(query):
 
 def get_news():
     try:
-        url = f"http://api.mediastack.com/v1/news"
+        url = "http://api.mediastack.com/v1/news"
         params = {
             "access_key": MEDIASTACK_API_KEY,
             "languages": "ru",
@@ -43,14 +43,13 @@ def get_news():
         article = r.json().get("data", [{}])[0]
         title = article.get("title", "Нет заголовка")
         desc = article.get("description", "Нет описания")
-        return f"{title}
-{desc}"
+        return f"{title}\n{desc}"
     except Exception as e:
         return f"Ошибка получения новостей: {e}"
 
 def get_weather(city="amsterdam"):
     try:
-        url = f"https://api.open-meteo.com/v1/forecast?latitude=52.37&longitude=4.89&current_weather=true"
+        url = "https://api.open-meteo.com/v1/forecast?latitude=52.37&longitude=4.89&current_weather=true"
         r = requests.get(url)
         weather = r.json().get("current_weather", {})
         return f"Температура: {weather.get('temperature', '?')}°C, ветер: {weather.get('windspeed', '?')} км/ч"
@@ -81,9 +80,7 @@ def handle_message(message):
 
     prompt = message.text
     if extra_info:
-        prompt = f"Запрос пользователя: {message.text}
-Вот актуальная информация: {extra_info}
-Ответь на основе этих данных."
+        prompt = f"Запрос пользователя: {message.text}\nВот актуальная информация: {extra_info}\nОтветь на основе этих данных."
 
     try:
         resp = client.chat.completions.create(
@@ -97,9 +94,7 @@ def handle_message(message):
             ]
         )
         answer = resp.choices[0].message.content
-        bot.reply_to(message, f"(GPT-4o)
-
-{answer}")
+        bot.reply_to(message, f"(GPT-4o)\n\n{answer}")
     except Exception as e:
         bot.reply_to(message, f"Ошибка: {e}")
 
