@@ -17,14 +17,17 @@ def handle_message(message):
         resp = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": "Ты дружелюбный помощник на базе GPT-4o. Отвечай чётко, ясно и полезно."},
+                {"role": "system", "content": (
+                    "Ты ChatGPT на базе GPT-4o. "
+                    "Если спросят про модель, обязательно укажи GPT-4o. "
+                    "Если спрашивают про актуальность, говори, что ты обучен на данных до октября 2023 года. "
+                    "Отвечай чётко и дружелюбно."
+                )},
                 {"role": "user", "content": message.text}
             ]
         )
         answer = resp.choices[0].message.content
-        bot.reply_to(message, f"(GPT-4o)
-
-{answer}")
+        bot.reply_to(message, f"(GPT-4o)\n\n{answer}")
     except Exception as e:
         bot.reply_to(message, f"Ошибка: {e}")
 
