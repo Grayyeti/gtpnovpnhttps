@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: telegram-gpt-searchbot
+    name: telegram-gpt-buttons
     env: python
     plan: free
     buildCommand: pip install -r requirements.txt
