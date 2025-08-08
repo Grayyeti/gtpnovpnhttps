@@ -9,6 +9,10 @@ TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 BRAVE_API_KEY = os.getenv("BRAVE_API_KEY")
+MEDIASTACK_API_KEY = os.getenv("MEDIASTACK_API_KEY")
+
+PASSWORD = "DoxieMonya77"
+authorized_users = set()
 
 bot = telebot.TeleBot(TOKEN)
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -48,7 +52,7 @@ def get_news():
     try:
         url = "http://api.mediastack.com/v1/news"
         params = {
-            "access_key": os.getenv("MEDIASTACK_API_KEY"),
+            "access_key": MEDIASTACK_API_KEY,
             "languages": "ru",
             "limit": 1,
             "sort": "published_desc"
@@ -63,12 +67,38 @@ def get_news():
 
 @bot.message_handler(commands=["start"])
 def send_welcome(message):
+    if message.chat.type != "private":
+        bot.reply_to(message, "⛔ Я работаю только в личных сообщениях.")
+        return
+    if message.chat.id in authorized_users:
+        show_main_menu(message)
+    else:
+        bot.reply_to(message, "Введите пароль для доступа:")
+
+@bot.message_handler(func=lambda m: m.chat.id not in authorized_users and m.chat.type == "private")
+def check_password(message):
+    if message.text.strip() == PASSWORD:
+        authorized_users.add(message.chat.id)
+        bot.reply_to(message, "✅ Доступ разрешён.")
+        show_main_menu(message)
+    else:
+        bot.reply_to(message, "❌ Неверный пароль. Попробуйте снова.")
+
+def show_main_menu(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.add("🌦 Погода сейчас", "💱 Курс валют", "📰 Новости дня")
-    bot.send_message(message.chat.id, "Привет! Выбери запрос или задай свой вопрос:", reply_markup=markup)
+    bot.send_message(message.chat.id, "Выберите запрос или задайте свой вопрос:", reply_markup=markup)
 
 @bot.message_handler(func=lambda m: True)
 def handle(message):
+    if message.chat.type != "private":
+        bot.reply_to(message, "⛔ Я работаю только в личных сообщениях.")
+        return
+
+    if message.chat.id not in authorized_users:
+        bot.reply_to(message, "⛔ Вы не авторизованы. Введите /start.")
+        return
+
     text = message.text.strip().lower()
 
     if text == "🌦 погода сейчас":
