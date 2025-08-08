@@ -5,7 +5,7 @@ from openai import OpenAI
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # Полный адрес вебхука
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
 bot = telebot.TeleBot(TOKEN)
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -15,13 +15,16 @@ app = Flask(__name__)
 def handle_message(message):
     try:
         resp = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=[
-                {"role": "system", "content": "Ты дружелюбный помощник."},
+                {"role": "system", "content": "Ты дружелюбный помощник на базе GPT-4o. Отвечай чётко, ясно и полезно."},
                 {"role": "user", "content": message.text}
             ]
         )
-        bot.reply_to(message, resp.choices[0].message.content)
+        answer = resp.choices[0].message.content
+        bot.reply_to(message, f"(GPT-4o)
+
+{answer}")
     except Exception as e:
         bot.reply_to(message, f"Ошибка: {e}")
 
