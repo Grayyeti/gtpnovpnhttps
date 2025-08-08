@@ -7,8 +7,8 @@ from openai import OpenAI
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-SERPSTACK_API_KEY = os.getenv("SERPSTACK_API_KEY")
 MEDIASTACK_API_KEY = os.getenv("MEDIASTACK_API_KEY")
+BRAVE_API_KEY = os.getenv("BRAVE_API_KEY")
 
 bot = telebot.TeleBot(TOKEN)
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -16,17 +16,16 @@ app = Flask(__name__)
 
 def search_web(query):
     try:
-        url = "http://api.serpstack.com/search"
-        params = {
-            "access_key": SERPSTACK_API_KEY,
-            "query": query,
-            "num": 1
+        url = f"https://api.search.brave.com/res/v1/web/search?q={requests.utils.quote(query)}"
+        headers = {
+            "Accept": "application/json",
+            "X-Subscription-Token": BRAVE_API_KEY
         }
-        r = requests.get(url, params=params)
-        results = r.json().get("organic_results", [])
+        r = requests.get(url, headers=headers)
+        results = r.json().get("web", {}).get("results", [])
         if results:
-            return results[0].get("title", "") + " — " + results[0].get("snippet", "")
-        return "Ничего не найдено в интернете."
+            return results[0].get("description", "Нет описания.")
+        return "Результат не найден."
     except Exception as e:
         return f"Ошибка при поиске: {e}"
 
@@ -47,7 +46,7 @@ def get_news():
     except Exception as e:
         return f"Ошибка получения новостей: {e}"
 
-def get_weather(city="amsterdam"):
+def get_weather():
     try:
         url = "https://api.open-meteo.com/v1/forecast?latitude=52.37&longitude=4.89&current_weather=true"
         r = requests.get(url)
