@@ -31,7 +31,7 @@ def brave_search(query):
         }
         response = requests.get(url, headers=headers).json()
         results = response.get("web", {}).get("results", [])[:3]
-        return "
+        return "Бот работает!"
 ".join([f"{r['title']}: {r['description']}" for r in results]) if results else "Ничего не найдено."
     except Exception as e:
         return f"Ошибка поиска: {e}"
