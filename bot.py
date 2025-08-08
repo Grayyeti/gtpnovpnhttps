@@ -4,12 +4,12 @@ import requests
 from flask import Flask, request
 from openai import OpenAI
 from telebot import types
+import xml.etree.ElementTree as ET
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 BRAVE_API_KEY = os.getenv("BRAVE_API_KEY")
-MEDIASTACK_API_KEY = os.getenv("MEDIASTACK_API_KEY")
 
 PASSWORD = "DoxieMonya77"
 authorized_users = set()
@@ -40,27 +40,24 @@ def get_weather():
     except Exception as e:
         return f"Ошибка получения погоды: {e}"
 
-def get_exchange_rate():
+def get_exchange_rate_rss():
     try:
-        r = requests.get("https://api.exchangerate.host/latest?base=USD&symbols=EUR,RUB,UAH")
-        rates = r.json().get("rates", {})
-        return f"Курс USD: EUR={rates.get('EUR', '?')}, RUB={rates.get('RUB', '?')}, UAH={rates.get('UAH', '?')}"
+        rss_url = "https://www.cbr.ru/rss/eng/cbrf_usd.xml"
+        r = requests.get(rss_url)
+        root = ET.fromstring(r.content)
+        item = root.find("./channel/item/description")
+        return f"Курс доллара по ЦБ РФ: {item.text}" if item is not None else "Не удалось получить курс."
     except Exception as e:
         return f"Ошибка получения курса валют: {e}"
 
-def get_news():
+def get_news_rss():
     try:
-        url = "http://api.mediastack.com/v1/news"
-        params = {
-            "access_key": MEDIASTACK_API_KEY,
-            "languages": "ru",
-            "limit": 1,
-            "sort": "published_desc"
-        }
-        r = requests.get(url, params=params)
-        article = r.json().get("data", [{}])[0]
-        title = article.get("title", "Нет заголовка")
-        desc = article.get("description", "Нет описания")
+        rss_url = "https://tass.ru/rss/v2.xml"
+        r = requests.get(rss_url)
+        root = ET.fromstring(r.content)
+        item = root.find("./channel/item")
+        title = item.find("title").text
+        desc = item.find("description").text
         return f"{title}\n{desc}"
     except Exception as e:
         return f"Ошибка получения новостей: {e}"
@@ -104,9 +101,9 @@ def handle(message):
     if text == "🌦 погода сейчас":
         bot.reply_to(message, get_weather())
     elif text == "💱 курс валют":
-        bot.reply_to(message, get_exchange_rate())
+        bot.reply_to(message, get_exchange_rate_rss())
     elif text == "📰 новости дня":
-        bot.reply_to(message, get_news())
+        bot.reply_to(message, get_news_rss())
     else:
         search_results = brave_search(message.text)
         prompt = (
