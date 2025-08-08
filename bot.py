@@ -1,4 +1,5 @@
 import os
+import time
 import telebot
 import requests
 from flask import Flask, request
@@ -18,6 +19,9 @@ bot = telebot.TeleBot(TOKEN)
 client = OpenAI(api_key=OPENAI_API_KEY)
 app = Flask(__name__)
 
+# Кэш новостей
+cached_news = {"timestamp": 0, "content": ""}
+
 def brave_search(query):
     try:
         url = f"https://api.search.brave.com/res/v1/web/search?q={requests.utils.quote(query)}"
@@ -27,7 +31,8 @@ def brave_search(query):
         }
         response = requests.get(url, headers=headers).json()
         results = response.get("web", {}).get("results", [])[:3]
-        return "\n".join([f"{r['title']}: {r['description']}" for r in results]) if results else "Ничего не найдено."
+        return "
+".join([f"{r['title']}: {r['description']}" for r in results]) if results else "Ничего не найдено."
     except Exception as e:
         return f"Ошибка поиска: {e}"
 
@@ -42,23 +47,40 @@ def get_weather():
 
 def get_exchange_rate_rss():
     try:
-        rss_url = "https://www.cbr.ru/rss/eng/cbrf_usd.xml"
+        rss_url = "https://www.banki.ru/xml/news.rss"
         r = requests.get(rss_url)
         root = ET.fromstring(r.content)
-        item = root.find("./channel/item/description")
-        return f"Курс доллара по ЦБ РФ: {item.text}" if item is not None else "Не удалось получить курс."
+        for item in root.findall("./channel/item"):
+            title = item.find("title").text.lower()
+            if "курс доллара" in title or "курс евро" in title:
+                return f"{item.find('title').text}
+{item.find('description').text}"
+        return "Курс валют не найден в ленте banki.ru."
     except Exception as e:
-        return f"Ошибка получения курса валют: {e}"
+        return f"Ошибка получения курса: {e}"
 
-def get_news_rss():
+def get_news_rss(limit=30):
     try:
+        now = time.time()
+        if now - cached_news["timestamp"] < 14400:
+            return cached_news["content"]
+
         rss_url = "https://tass.ru/rss/v2.xml"
         r = requests.get(rss_url)
         root = ET.fromstring(r.content)
-        item = root.find("./channel/item")
-        title = item.find("title").text
-        desc = item.find("description").text
-        return f"{title}\n{desc}"
+        items = root.findall("./channel/item")[:limit]
+        news = []
+        for item in items:
+            title = item.find("title").text
+            desc = item.find("description").text
+            news.append(f"• {title}
+{desc}")
+        compiled = "
+
+".join(news)
+        cached_news["timestamp"] = now
+        cached_news["content"] = compiled
+        return compiled
     except Exception as e:
         return f"Ошибка получения новостей: {e}"
 
@@ -83,7 +105,7 @@ def check_password(message):
 
 def show_main_menu(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    markup.add("🌦 Погода сейчас", "💱 Курс валют", "📰 Новости дня")
+    markup.add("🌦 Погода сейчас", "💱 Курс валют", "🗞 Новости за день")
     bot.send_message(message.chat.id, "Выберите запрос или задайте свой вопрос:", reply_markup=markup)
 
 @bot.message_handler(func=lambda m: True)
@@ -102,13 +124,16 @@ def handle(message):
         bot.reply_to(message, get_weather())
     elif text == "💱 курс валют":
         bot.reply_to(message, get_exchange_rate_rss())
-    elif text == "📰 новости дня":
-        bot.reply_to(message, get_news_rss())
+    elif text == "🗞 новости за день":
+        bot.reply_to(message, get_news_rss(limit=30))
     else:
         search_results = brave_search(message.text)
         prompt = (
-            f"Вопрос: {message.text}\n"
-            f"Информация из интернета:\n{search_results}\n"
+            f"Вопрос: {message.text}
+"
+            f"Информация из интернета:
+{search_results}
+"
             "Ответь максимально полезно, ссылаясь на эти данные. Не придумывай, если не найдено."
         )
         try:

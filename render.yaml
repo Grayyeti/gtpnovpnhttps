@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: telegram-gpt-rss
+    name: telegram-gpt-rss-final
     env: python
     plan: free
     buildCommand: pip install -r requirements.txt
