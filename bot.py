@@ -24,8 +24,9 @@ def search_web(query):
         r = requests.get(url, headers=headers)
         results = r.json().get("web", {}).get("results", [])
         if results:
-            return results[0].get("description", "Нет описания.")
-        return "Результат не найден."
+            first = results[0]
+            return f"{first.get('title', '')}: {first.get('description', '')} ({first.get('url', '')})"
+        return "Ничего не найдено."
     except Exception as e:
         return f"Ошибка при поиске: {e}"
 
@@ -74,26 +75,35 @@ def handle_message(message):
         extra_info = get_exchange_rate()
     elif "новости" in text:
         extra_info = get_news()
-    elif "найди" in text or "поиск" in text or "ищи" in text:
+    elif "найди" in text or "поиск" in text or "ищи" in text or "что такое" in text:
         extra_info = search_web(message.text)
 
     prompt = message.text
     if extra_info:
-        prompt = f"Запрос пользователя: {message.text}\nВот актуальная информация: {extra_info}\nОтветь на основе этих данных."
+        prompt = (
+            f"Пользователь задал вопрос: "{message.text}"
+"
+            f"Вот актуальная информация из интернета, которую удалось найти:
+{extra_info}
+"
+            "Ответь, опираясь строго на эти данные, без фантазии."
+        )
 
     try:
         resp = client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": (
-                    "Ты ассистент на базе GPT-4o с доступом к реальным данным: поиску, погоде, курсам и новостям. "
-                    "Встраивай их в ответы, если они есть."
+                    "Ты помощник, который обязан включать найденные данные в ответ. "
+                    "Не придумывай факты, если нет данных."
                 )},
                 {"role": "user", "content": prompt}
             ]
         )
         answer = resp.choices[0].message.content
-        bot.reply_to(message, f"(GPT-4o)\n\n{answer}")
+        bot.reply_to(message, f"(GPT-4o)
+
+{answer}")
     except Exception as e:
         bot.reply_to(message, f"Ошибка: {e}")
 
