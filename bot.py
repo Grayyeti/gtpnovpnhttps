@@ -23,9 +23,12 @@ def search_web(query):
         }
         r = requests.get(url, headers=headers)
         results = r.json().get("web", {}).get("results", [])
+
+        # Собираем первые 5 результатов
         if results:
-            first = results[0]
-            return f"{first.get('title', '')}: {first.get('description', '')} ({first.get('url', '')})"
+            snippets = "
+".join([f"{result.get('title', '')}: {result.get('description', '')}" for result in results[:5]])
+            return snippets
         return "Ничего не найдено."
     except Exception as e:
         return f"Ошибка при поиске: {e}"
