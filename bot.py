@@ -26,8 +26,8 @@ def fetch_tass_news():
 def fetch_currency_info():
     # Пример: курс валют с banki.ru через RSS не получается корректно,
     # подставьте свой метод или API, если нужно
-    return "Актуальные курсы валют доступны по ссылке: https://www.banki.ru/products/currency/cb/
-    
+    return "Актуальные курсы валют доступны по ссылке: https://www.banki.ru/products/currency/cb/"
+  
 @bot.message_handler(commands=['start'])
 def handle_start(message):
     if message.chat.type != "private":
